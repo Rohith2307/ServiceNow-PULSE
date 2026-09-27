@@ -31,12 +31,24 @@ type EarlyWarning = {
   context: string
   support_signal: string
   contributing_signals: string[]
+  pattern_type?: string
+  evidence_strength?: string
+  baseline?: string
+  deviation?: number
+  why_now?: string
+  context_explanation?: string
+  historical_comparison?: string
   why_detected: {
     trajectory: string
     persistence: boolean
     magnitude: string
     context: string
     contributing_signals: string[]
+    pattern_type?: string
+    evidence_strength?: string
+    why_now?: string
+    context_explanation?: string
+    historical_comparison?: string
   }
   explanation: string
   recommended_actions: string[]
@@ -72,6 +84,13 @@ type DashboardCohort = {
   concerns: string[]
   context: string
   what_changed: string[]
+  pattern_type?: string
+  evidence_strength?: string
+  baseline?: string
+  deviation?: number
+  why_now?: string
+  context_explanation?: string
+  historical_comparison?: string
   explanation: string
 }
 
@@ -195,8 +214,9 @@ function StudentExperience({ onNavigate }: { onNavigate: (route: string) => void
       )
     : 0
 
-  const statusLabel = warning ? warning.status.replace('_', ' ') : 'Stable'
+  const statusLabel = warning ? warning.status.replace(/_/g, ' ') : 'Stable'
   const contextLabel = warning ? warning.context.replace(/_/g, ' ') : 'N/A'
+  const evidenceLabel = warning?.evidence_strength ? warning.evidence_strength.replace(/_/g, ' ') : 'Limited'
 
   return (
     <div className="app-shell">
@@ -263,7 +283,7 @@ function StudentExperience({ onNavigate }: { onNavigate: (route: string) => void
             <div
               className={`status-pill ${warning ? `status-${warning.status.toLowerCase()}` : 'status-stable'}`}
             >
-              {warning ? warning.status : 'STABLE'}
+              {warning ? statusLabel : 'STABLE'}
             </div>
           </header>
         )}
@@ -326,8 +346,40 @@ function StudentExperience({ onNavigate }: { onNavigate: (route: string) => void
             </section>
 
             <section className="card">
-              <h3>Why we noticed this</h3>
-              <p className="support-copy">{warning?.explanation ?? 'No early warning detected yet.'}</p>
+              <div className="card-header">
+                <h3>What changed, why now, and what this means</h3>
+                <span>{evidenceLabel} evidence</span>
+              </div>
+
+              <p className="support-copy">
+                {warning
+                  ? `The current pattern is ${warning.direction} and has ${warning.persistence ? 'been sustained' : 'not stayed consistent'} across recent check-ins.`
+                  : 'No meaningful change is currently visible in the student pulse.'}
+              </p>
+
+              <div className="inline-summary">
+                <span className="meta-badge">{warning?.pattern_type ?? 'STABLE'}</span>
+                <span className="meta-badge secondary">{warning?.evidence_strength ?? 'LIMITED'}</span>
+              </div>
+
+              <div className="explain-grid">
+                <div className="explain-box">
+                  <p className="small-label">Why now</p>
+                  <p className="support-copy">{warning?.why_now ?? 'This pattern remains comparatively stable at the moment.'}</p>
+                </div>
+
+                <div className="explain-box">
+                  <p className="small-label">Context</p>
+                  <p className="support-copy">
+                    {warning?.context_explanation ?? `The student is currently being interpreted within the ${contextLabel} context.`}
+                  </p>
+                </div>
+              </div>
+
+              <p className="support-copy muted">
+                {warning?.historical_comparison ?? 'There is no additional historical comparison available for this pattern yet.'}
+              </p>
+
               <div className="tag-list signal-list">
                 {(warning?.contributing_signals ?? []).map((signal) => (
                   <span key={signal} className="tag signal-tag">
@@ -503,6 +555,9 @@ function UniversityDashboard({ onNavigate }: { onNavigate: (route: string) => vo
   const patternSummary = selectedCohort
     ? `${selectedCohort.cohort_name} is showing an emerging pattern. ${selectedCohort.explanation}`
     : 'No emerging pattern is currently visible in the available cohort data.'
+  const evidenceNarrative = selectedCohort
+    ? `${selectedCohort.pattern_type ?? 'STABLE'} pattern with ${selectedCohort.evidence_strength ?? 'LIMITED'} evidence.`
+    : 'No cohort-level evidence is available yet.'
 
   return (
     <div className="university-shell">
@@ -660,6 +715,28 @@ function UniversityDashboard({ onNavigate }: { onNavigate: (route: string) => vo
                 <span>contextual interpretation</span>
               </div>
               <p className="info-copy">{patternSummary}</p>
+              {selectedCohort ? (
+                <div className="inline-summary">
+                  <span className="meta-badge">{selectedCohort.pattern_type ?? 'STABLE'}</span>
+                  <span className="meta-badge secondary">{selectedCohort.evidence_strength ?? 'LIMITED'}</span>
+                </div>
+              ) : null}
+
+              <div className="answer-grid">
+                <div className="answer-card">
+                  <p className="small-label">Why now</p>
+                  <p className="info-copy">{selectedCohort?.why_now ?? 'The current pattern is not yet strong enough to attribute a specific trigger.'}</p>
+                </div>
+                <div className="answer-card">
+                  <p className="small-label">Context</p>
+                  <p className="info-copy">{selectedCohort?.context_explanation ?? 'No direct context trigger is visible in the current data.'}</p>
+                </div>
+                <div className="answer-card">
+                  <p className="small-label">Evidence</p>
+                  <p className="info-copy">{selectedCohort?.historical_comparison ?? evidenceNarrative}</p>
+                </div>
+              </div>
+
               {selectedCohort ? (
                 <div className="tag-list signal-list">
                   {selectedCohort.concerns.map((concern) => (
